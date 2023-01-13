@@ -4,6 +4,8 @@ from time import sleep
 import dht
 import network
 import socket
+import umqtt
+
 # import secrets
 
 def connect():
