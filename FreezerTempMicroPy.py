@@ -4,11 +4,13 @@ from time import sleep
 import dht
 import network
 import socket
-import umqtt
+import json
+from mqtt import *
 
 # import secrets
 
 def connect():
+    print("inside connect")
     wlan=network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect('Linksys01','dianne01')
@@ -20,7 +22,9 @@ def connect():
     return ip
 
 def open_socket(ip):
+    print("inside open_socket")
     address=(ip,80)
+    print(f"address: {address}")
     connection=socket.socket()
     connection.bind(address)
     connection.listen(1)
@@ -31,6 +35,7 @@ unit="F"
 unit_hum="%"
 temp_f=0
 hum=0
+
 def webpage(temp_f,hum):
     html = f"""
     <!DOCTYPE html>
@@ -77,21 +82,26 @@ def webpage(temp_f,hum):
 
 
 sensor = dht.DHT22(Pin(15))
-#sensor = dht.DHT11(Pin(14))
-def serve(connection):
+
+def serve():
     while True:
       try:
-        sleep(2)
+        print("inside serve")
+        sleep(10)
         sensor.measure()
         temp = sensor.temperature()
         hum = sensor.humidity()
         temp_f = temp * (9/5) + 32.0
-        client=connection.accept()[0]
-        request=client.recv(1024)
-        request=str(request)
-        html=webpage(temp_f,hum)
-        client.send(html)
-        client.close()
+#         client=connection.accept()[0]
+#         request=client.recv(1024)
+#         request=str(request)
+#         html=webpage(temp_f,hum)
+#         client.send(html)
+#         client.send(temp_f)
+#         client.close()
+        data={"temp":f"{temp_f}","humidity":f"{hum}"}
+        data=json.dumps(data)
+        mqttclient.publish("pinyanmed/freezer/data",data)
     #     print('Temperature: %3.1f C' %temp)
         print('Temperature: %3.1f F' %temp_f)
         print('Humidity: %3.1f %%' %hum)
@@ -100,7 +110,11 @@ def serve(connection):
         
 try:
     ip=connect()
-    connection=open_socket(ip)
-    serve(connection)
+#     connection=open_socket(ip)
+#     print("socket conn made.................")
+    mqttclient=connect_mqtt()
+    print(mqttclient)
+#     serve(connection)
+    serve()
 except KeyboardInterrupt:
     machine.reset()
